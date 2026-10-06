@@ -182,12 +182,17 @@ class MDRamp(ChokeArea):
                 if isinstance(area, Region) and self not in area.areas:
                     area.areas.append(self)
 
+        # a ramp connects two regions, but on some maps (e.g. LastFantasyAIE) a
+        # ramp's perimeter touches fewer than two, or none at all; link the
+        # closest regions to make up the difference
         if len(self.regions) < 2:
-            region_list = list(self.map_data.regions.values())
-            region_list.remove(self.regions[0])
-            closest_region = self.closest_region(region_list=region_list)
-            assert closest_region not in self.regions
-            self.areas.append(closest_region)
+            region_list = [
+                r for r in self.map_data.regions.values() if r not in self.regions
+            ]
+            while len(self.regions) < 2 and region_list:
+                closest_region = self.closest_region(region_list=region_list)
+                region_list.remove(closest_region)
+                self.areas.append(closest_region)
 
     @property
     def top_center(self) -> Point2:
