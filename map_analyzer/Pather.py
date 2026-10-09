@@ -98,6 +98,12 @@ class MapAnalyzerPather:
             self.default_grid[116, 43] = 1
             self.default_grid[51, 120] = 1
 
+        # Xel'Naga Watchtowers are neutral units whose footprint is missing
+        # from the starting pathing grid, so without this the pathing grid
+        # treats the tower as walkable and routes units straight through it
+        for tower in self.map_data.bot.all_units(UnitTypeId.XELNAGATOWER):
+            self._set_footprint_non_pathable(self.default_grid, tower)
+
         self.default_grid_nodestr = self.default_grid.copy()
 
         self.destructables_included = {}
@@ -316,6 +322,16 @@ class MapAnalyzerPather:
             return None
 
         return list(map(Point2, lowest))
+
+    @staticmethod
+    def _set_footprint_non_pathable(grid: ndarray, unit) -> None:
+        """Mark the tiles whose centre is under a round unit as non pathable
+        (a radius 1.125 Watchtower blocks the 2x2 tiles around its centre)."""
+        cx, cy, r = unit.position.x, unit.position.y, unit.radius
+        for x in range(int(cx - r) - 1, int(cx + r) + 2):
+            for y in range(int(cy - r) - 1, int(cy + r) + 2):
+                if (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r:
+                    grid[x, y] = 0
 
     def get_base_pathing_grid(self, include_destructables: bool = True) -> ndarray:
         if include_destructables:
